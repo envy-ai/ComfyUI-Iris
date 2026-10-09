@@ -51,3 +51,32 @@ are included. ComfyUI and the Qwen weights keep their respective licenses.
 Source compilation passed. Runtime tests and real checkpoint generation are
 explicitly deferred at the user's request until training and queues are empty. Tests in `tests/` include tiny-model layout and upstream parity
 checks, loader boundaries, tokenizer behavior and the IMAGE sampler contract.
+
+## Local precision conversions
+
+The model loader accepts the original checkpoint, FP16 storage, and ComfyUI's
+native mixed INT8 ConvRot format. To make either smaller checkpoint on CPU from
+the original file:
+
+```bash
+conda run -n comfyui python custom_nodes/ComfyUI-Iris/scripts/quantize.py \
+  /d/comfy_models/diffusion_models/iris-3b/model.safetensors \
+  /d/comfy_models/diffusion_models/iris-3b/model_fp16.safetensors --format fp16
+conda run -n comfyui python custom_nodes/ComfyUI-Iris/scripts/quantize.py \
+  /d/comfy_models/diffusion_models/iris-3b/model.safetensors \
+  /d/comfy_models/diffusion_models/iris-3b/model_int8_convrot.safetensors --format int8-convrot
+```
+
+The converter uses CPU only, defaults to two threads, streams one source tensor
+at a time, preserves source metadata, and rejects non-finite source/conversion
+values. It refuses existing output files and publishes completed artifacts from
+`.partial` files. An adjacent JSON records sizes, tensor counts and policy.
+
+The mixed checkpoint stores trunk attention Q/K/V/output projections and
+SwiGLU w1/w3 matrices as INT8 with per-output-channel FP32 scales. ConvRot uses
+256-column groups, matching the native fused activation-rotation path. Content
+gate matrices, w2 down projections, the text adapter, modulation, timestep paths,
+norms, input/output layers and the complete pixel head stay FP16. The w2 width
+is 6826, which cannot use these rotation groups without changing model shapes.
+This is a conservative initial precision policy; image quality and GPU kernel
+performance have not been evaluated while training/queues are active.

@@ -15,7 +15,7 @@ from .integration import load_model, load_clip
 class IrisModelLoader(io.ComfyNode):
     @classmethod
     def define_schema(cls):
-        return io.Schema(node_id="IrisModelLoader", display_name="Load Iris Model", category="loaders/iris", inputs=[io.Combo.Input("model_name", options=folder_paths.get_filename_list("diffusion_models")), io.Combo.Input("weight_dtype", options=["default", "bfloat16", "float32"])], outputs=[io.Model.Output()])
+        return io.Schema(node_id="IrisModelLoader", display_name="Load Iris Model", category="loaders/iris", inputs=[io.Combo.Input("model_name", options=folder_paths.get_filename_list("diffusion_models")), io.Combo.Input("weight_dtype", options=["default", "bfloat16", "float16", "float32"])], outputs=[io.Model.Output()])
 
     @classmethod
     def execute(cls, model_name, weight_dtype):

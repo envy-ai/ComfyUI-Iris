@@ -48,3 +48,22 @@ exact width rule and ComfyUI's fused linear-input activation helper. Iris uses
 exact GELU; the fused linear helper supports GELU-tanh only, so its pixel MLP
 keeps native Linear + exact F.gelu. Fused `rms_adaln` lacks Iris's learned
 RMSNorm affine weight, so native RMSNorm plus compound addcmul keeps that math.
+
+## CPU precision conversions
+
+Add a one-tensor-at-a-time converter for the main original checkpoint. FP16 casts
+all floating checkpoint tensors, rejecting values that become non-finite. The
+mixed INT8 ConvRot policy quantizes trunk Q/K/V and attention output projections,
+plus SwiGLU w1/w3 matrices, with per-output-channel FP32 scales and group size 256.
+Keep content gate matrices, SwiGLU w2, the text adapter, all modulation/time paths,
+input/output layers, norms and the pixel head in FP16. The w2 input width is 6826,
+which cannot use the 256-column rotation grouping without altering the model.
+This policy is an informed initial choice, without image-quality calibration.
+
+Store native `.comfy_quant` metadata and select ComfyUI's mixed-precision ops at
+load. Conversion runs only on CPU, with bounded threads, and does not instantiate
+or run a model. Write `.partial` files before committing completed artifacts;
+leave the original checkpoint untouched. Preserve upstream file metadata and
+record conversion parameters/tensor counts in the file and an adjacent JSON.
+Runtime/inference tests remain explicitly deferred until training and queues are
+empty; CPU artifact conversion is separately authorized by the user.

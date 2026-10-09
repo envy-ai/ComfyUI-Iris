@@ -19,7 +19,7 @@ class IrisModelConfig(comfy.supported_models_base.BASE):
     unet_extra_config = {}
     latent_format = comfy.latent_formats.ChromaRadiance
     sampling_settings = {"shift": 4.0, "multiplier": 1000}
-    supported_inference_dtypes = [torch.bfloat16, torch.float32]
+    supported_inference_dtypes = [torch.bfloat16, torch.float16, torch.float32]
     memory_usage_factor = 0.3
 
 
@@ -39,14 +39,15 @@ class IrisModel(comfy.model_base.BaseModel):
 def load_model(path, weight_dtype="default"):
     sd = comfy.utils.load_torch_file(path)
     config = IrisModelConfig({"cfg": IrisConfig()})
+    config.quant_config = comfy.utils.detect_layer_quantization(sd, "")
     load_device = comfy.model_management.get_torch_device()
     offload_device = comfy.model_management.unet_offload_device()
     parameters = comfy.utils.calculate_parameters(sd)
-    stored_dtype = comfy.utils.weight_dtype(sd)
-    dtype = {"default": None, "bfloat16": torch.bfloat16, "float32": torch.float32}[weight_dtype]
+    stored_dtype = None if config.quant_config else comfy.utils.weight_dtype(sd)
+    dtype = {"default": None, "bfloat16": torch.bfloat16, "float16": torch.float16, "float32": torch.float32}[weight_dtype]
     if dtype is None:
         dtype = comfy.model_management.unet_dtype(model_params=parameters, supported_dtypes=config.supported_inference_dtypes, weight_dtype=stored_dtype)
-    manual_cast = comfy.model_management.unet_manual_cast(dtype, load_device, config.supported_inference_dtypes)
+    manual_cast = comfy.model_management.unet_manual_cast(None if config.quant_config else dtype, load_device, config.supported_inference_dtypes)
     config.set_inference_dtype(dtype, manual_cast, device=load_device)
     model = IrisModel(config, device=offload_device)
     patcher = comfy.model_patcher.CoreModelPatcher(model, load_device=load_device, offload_device=offload_device, fast_disk=comfy.storage.state_dict_fast_disk(sd))
