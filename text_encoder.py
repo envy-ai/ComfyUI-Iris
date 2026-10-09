@@ -57,3 +57,11 @@ class IrisQwenClip(sd1_clip.SDClipModel):
 class IrisTE(sd1_clip.SD1ClipModel):
     def __init__(self, device="cpu", dtype=None, model_options={}):
         super().__init__(device=device, dtype=dtype, name="qwen3vl_4b", clip_model=IrisQwenClip, model_options=model_options)
+
+    def load_sd(self, sd):
+        result = super().load_sd(sd)
+        missing, unexpected = result
+        missing = [key for key in missing if key.startswith("model.")]
+        if missing or unexpected:
+            raise ValueError(f"Invalid Qwen3-VL-4B text weights: missing={missing}, unexpected={unexpected}")
+        return result

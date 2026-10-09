@@ -56,21 +56,26 @@ def load_model(path, weight_dtype="default"):
 
 
 def load_clip(path):
-    sd = comfy.utils.load_torch_file(path)
-    # The published Qwen3-VL weights use HF's language_model namespace.
-    prefixes = ("model.language_model.", "language_model.")
-    text_sd = {}
-    for key, value in sd.items():
-        for prefix in prefixes:
-            if key.startswith(prefix):
-                text_sd["model." + key[len(prefix):]] = value
-                break
-    if not text_sd:
-        raise ValueError("Iris requires the original Qwen3-VL-4B text encoder checkpoint.")
+    sd, metadata = comfy.utils.load_torch_file(path, return_metadata=True)
+    sd, _ = comfy.utils.convert_old_quants(sd, model_prefix="", metadata=metadata)
+    prefixes = ("model.language_model.", "language_model.", "model.")
+    prefix = next((prefix for prefix in prefixes if prefix + "norm.weight" in sd), None)
+    if prefix is None:
+        raise ValueError("Iris requires compatible Qwen3-VL-4B language weights.")
+    text_sd = comfy.utils.state_dict_prefix_replace(sd, {prefix: "model."}, filter_keys=True)
+    signature = {"model.norm.weight": 2560,
+                 "model.layers.0.self_attn.q_norm.weight": 128,
+                 "model.layers.0.self_attn.k_proj.weight": 1024,
+                 "model.layers.35.self_attn.q_proj.weight": 4096}
+    if any(key not in text_sd or text_sd[key].shape[0] != size for key, size in signature.items()) or any(key.startswith("model.layers.36.") for key in text_sd):
+        raise ValueError("Iris requires Qwen3-VL-4B's 36-layer, 2560-wide language architecture.")
+    layer_weights = ("input_layernorm", "post_attention_layernorm", "self_attn.q_norm", "self_attn.k_norm", "self_attn.q_proj", "self_attn.k_proj", "self_attn.v_proj", "self_attn.o_proj", "mlp.gate_proj", "mlp.up_proj", "mlp.down_proj")
+    required = ["model.embed_tokens.weight", "model.norm.weight"]
+    required += [f"model.layers.{layer}.{name}.weight" for layer in range(36) for name in layer_weights]
+    missing = [key for key in required if key not in text_sd]
+    if missing:
+        raise ValueError(f"Incomplete Qwen3-VL-4B language weights: missing={missing}")
+    quant = comfy.utils.detect_layer_quantization(text_sd, "")
+    model_options = {"quantization_metadata": quant} if quant is not None else {}
     target = comfy.supported_models_base.ClipTarget(IrisTokenizer, IrisTE)
-    clip = comfy.sd.CLIP(target, embedding_directory=None, parameters=comfy.utils.calculate_parameters(text_sd), state_dict=[text_sd])
-    result = clip.load_sd(text_sd)
-    missing = [key for key in result.missing_keys if key.startswith("model.")]
-    if missing or result.unexpected_keys:
-        raise ValueError(f"Invalid Qwen3-VL-4B text weights: missing={missing}, unexpected={result.unexpected_keys}")
-    return clip
+    return comfy.sd.CLIP(target, embedding_directory=None, parameters=comfy.utils.calculate_parameters(text_sd), state_dict=[text_sd], model_options=model_options)
