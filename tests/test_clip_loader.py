@@ -136,3 +136,20 @@ def test_clip_loader_rejects_quantized_layer_without_its_weight(monkeypatch):
 
     with pytest.raises(ValueError, match="Incomplete Qwen3-VL-4B language weights: missing=.*layers.4.self_attn.q_proj.weight"):
         integration.load_clip("missing-quantized-weight.safetensors")
+
+
+def test_clip_loader_discards_vision_and_language_head_but_keeps_quant_metadata(monkeypatch):
+    source = language_state()
+    source["model.visual.patch_embed.weight"] = torch.ones(4, dtype=torch.float8_e4m3fn)
+    source["model.language_model.lm_head.weight"] = torch.ones(4, dtype=torch.float8_e4m3fn)
+    source["model.language_model.layers.0.self_attn.q_proj.comfy_quant"] = torch.tensor(
+        list(json.dumps({"format": "int8"}).encode()), dtype=torch.uint8
+    )
+    monkeypatch.setattr(integration.comfy.utils, "load_torch_file", lambda *a, **k: (source, {}))
+    monkeypatch.setattr(integration.comfy.sd, "CLIP", CapturingClip)
+
+    clip = integration.load_clip("native-fp8-mixed-vision.safetensors")
+
+    assert "model.layers.0.self_attn.q_proj.comfy_quant" in clip.state_dict
+    assert "model.lm_head.weight" not in clip.state_dict
+    assert not any(key.startswith("model.visual.") for key in clip.state_dict)

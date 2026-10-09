@@ -63,6 +63,7 @@ def load_clip(path):
     if prefix is None:
         raise ValueError("Iris requires compatible Qwen3-VL-4B language weights.")
     text_sd = comfy.utils.state_dict_prefix_replace(sd, {prefix: "model."}, filter_keys=True)
+    text_sd = {key: value for key, value in text_sd.items() if not key.startswith(("model.visual.", "model.lm_head."))}
     signature = {"model.norm.weight": 2560,
                  "model.layers.0.self_attn.q_norm.weight": 128,
                  "model.layers.0.self_attn.k_proj.weight": 1024,
