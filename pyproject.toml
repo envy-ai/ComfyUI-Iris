@@ -4,3 +4,13 @@ version = "0.1.0"
 description = "Native pixel-space Iris-3B inference for ComfyUI"
 license = "Apache-2.0"
 requires-python = ">=3.11"
+
+[project.urls]
+Repository = "https://github.com/envy-ai/ComfyUI-Iris"
+Documentation = "https://github.com/envy-ai/ComfyUI-Iris#readme"
+"Bug Tracker" = "https://github.com/envy-ai/ComfyUI-Iris/issues"
+
+[tool.comfy]
+PublisherId = "envy-ai"
+DisplayName = "Iris"
+requires-comfyui = ">=0.37.0"

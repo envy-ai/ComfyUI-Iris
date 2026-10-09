@@ -7,9 +7,9 @@ pipeline is used. No files are downloaded during node import or execution.
 The loaders select Iris's DiT and exact 12-layer, 300-position conditioning
 through native ComfyUI loading and memory management, without changing core files.
 
-Place this directory under `ComfyUI/custom_nodes`. Requires a recent ComfyUI with
-native Qwen3-VL-4B support and Comfy Kitchen weighted RMSNorm/RoPE and GQA
-attention. Uses only existing ComfyUI dependencies. After installation, restart
+Place this directory under `ComfyUI/custom_nodes`. Requires ComfyUI 0.37.0 or newer
+and its Comfy Kitchen 0.2.35 or newer for native Qwen3-VL-4B support, weighted
+RMSNorm/RoPE and GQA attention. Uses only existing ComfyUI dependencies. After installation, restart
 ComfyUI to register the nodes once active jobs are finished.
 
 Model files stay in configured ComfyUI model folders:
