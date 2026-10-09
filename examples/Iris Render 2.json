@@ -1,67 +1,8 @@
 {
   "revision": 0,
-  "last_node_id": 54,
-  "last_link_id": 105,
+  "last_node_id": 66,
+  "last_link_id": 122,
   "nodes": [
-    {
-      "id": 4,
-      "type": "JWDatetimeString",
-      "pos": [
-        2315.703279153808,
-        352.8686191708815
-      ],
-      "size": [
-        270,
-        69.38889185587566
-      ],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "format",
-          "name": "format",
-          "type": "STRING",
-          "widget": {
-            "name": "format"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "STRING",
-          "name": "STRING",
-          "type": "STRING",
-          "links": [
-            105
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfyui-various",
-        "ver": "5bd85aaf7616878471469c4ec7e11bbd0cef3bf2",
-        "Node name for S&R": "JWDatetimeString",
-        "ue_properties": {
-          "version": "7.8",
-          "widget_ue_connectable": {},
-          "input_ue_unconnectable": {}
-        },
-        "ttNbgOverride": {
-          "color": "#2a363b",
-          "bgcolor": "#3f5159",
-          "groupcolor": "#3f789e"
-        }
-      },
-      "widgets_values": [
-        "%Y-%m-%d/Krea2_PromptFolder"
-      ],
-      "widgets_values_named": {
-        "format": "%Y-%m-%d/Krea2_PromptFolder"
-      },
-      "color": "#2a363b",
-      "bgcolor": "#3f5159"
-    },
     {
       "id": 6,
       "type": "SeedNode",
@@ -182,10 +123,10 @@
         }
       },
       "widgets_values": [
-        ""
+        "anime style; a stone gateway into a spirit forest at dusk"
       ],
       "widgets_values_named": {
-        "text": ""
+        "text": "anime style; a stone gateway into a spirit forest at dusk"
       },
       "color": "#2a363b",
       "bgcolor": "#3f5159"
@@ -306,8 +247,8 @@
       "id": 46,
       "type": "IrisKSampler",
       "pos": [
-        1269.3012911043204,
-        213.73975122291867
+        1242.801978962131,
+        217.8165431423877
       ],
       "size": [
         270,
@@ -431,7 +372,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            89
+            90
           ]
         }
       ],
@@ -448,7 +389,7 @@
         "increment",
         50,
         3,
-        "euler",
+        "dpmpp_2m_sde_gpu",
         "simple",
         1024,
         1024,
@@ -460,7 +401,7 @@
         "control_after_generate": "increment",
         "steps": 50,
         "cfg": 3,
-        "sampler_name": "euler",
+        "sampler_name": "dpmpp_2m_sde_gpu",
         "scheduler": "simple",
         "width": 1024,
         "height": 1024,
@@ -681,7 +622,7 @@
         15,
         3,
         "dpmpp_2m_sde_gpu",
-        "bong_tangent",
+        "simple",
         1024,
         1024,
         1,
@@ -693,138 +634,11 @@
         "steps": 15,
         "cfg": 3,
         "sampler_name": "dpmpp_2m_sde_gpu",
-        "scheduler": "bong_tangent",
+        "scheduler": "simple",
         "width": 1024,
         "height": 1024,
         "batch_size": 1,
         "denoise": 0.25
-      }
-    },
-    {
-      "id": 51,
-      "type": "Upscale by Factor with Model (WLSH)",
-      "pos": [
-        1569.0550347867725,
-        449.66406427273796
-      ],
-      "size": [
-        291.72353210449216,
-        102
-      ],
-      "flags": {},
-      "order": 9,
-      "mode": 4,
-      "inputs": [
-        {
-          "localized_name": "upscale_model",
-          "name": "upscale_model",
-          "type": "UPSCALE_MODEL",
-          "link": 91
-        },
-        {
-          "localized_name": "image",
-          "name": "image",
-          "type": "IMAGE",
-          "link": 89
-        },
-        {
-          "localized_name": "upscale_method",
-          "name": "upscale_method",
-          "type": "COMBO",
-          "widget": {
-            "name": "upscale_method"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "factor",
-          "name": "factor",
-          "type": "FLOAT",
-          "widget": {
-            "name": "factor"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "IMAGE",
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            90
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "wlsh_nodes",
-        "ver": "97807467bf7ff4ea01d529fcd6e666758f34e3c1",
-        "Node name for S&R": "Upscale by Factor with Model (WLSH)",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "input_ue_unconnectable": {},
-          "version": "7.8"
-        }
-      },
-      "widgets_values": [
-        "nearest-exact",
-        1.4
-      ],
-      "widgets_values_named": {
-        "upscale_method": "nearest-exact",
-        "factor": 1.4
-      }
-    },
-    {
-      "id": 52,
-      "type": "UpscaleModelLoader",
-      "pos": [
-        1576.6308502985878,
-        281.5181476603504
-      ],
-      "size": [
-        270,
-        58
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 4,
-      "inputs": [
-        {
-          "localized_name": "model_name",
-          "name": "model_name",
-          "type": "COMBO",
-          "widget": {
-            "name": "model_name"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "UPSCALE_MODEL",
-          "name": "UPSCALE_MODEL",
-          "type": "UPSCALE_MODEL",
-          "links": [
-            91
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.37.0",
-        "Node name for S&R": "UpscaleModelLoader",
-        "ue_properties": {
-          "widget_ue_connectable": {},
-          "input_ue_unconnectable": {},
-          "version": "7.8"
-        }
-      },
-      "widgets_values": [
-        "4x-UniScaleV2_Soft.pth"
-      ],
-      "widgets_values_named": {
-        "model_name": "4x-UniScaleV2_Soft.pth"
       }
     },
     {
@@ -906,7 +720,7 @@
       ],
       "size": [
         270,
-        58
+        270
       ],
       "flags": {},
       "order": 11,
@@ -925,7 +739,7 @@
           "widget": {
             "name": "filename_prefix"
           },
-          "link": 105
+          "link": null
         }
       ],
       "outputs": [
@@ -996,28 +810,12 @@
       "INT"
     ],
     [
-      89,
-      46,
-      0,
-      51,
-      1,
-      "IMAGE"
-    ],
-    [
       90,
-      51,
+      46,
       0,
       50,
       3,
       "IMAGE"
-    ],
-    [
-      91,
-      52,
-      0,
-      51,
-      0,
-      "UPSCALE_MODEL"
     ],
     [
       94,
@@ -1074,14 +872,6 @@
       54,
       0,
       "IMAGE"
-    ],
-    [
-      105,
-      4,
-      0,
-      54,
-      1,
-      "STRING"
     ]
   ],
   "groups": [
@@ -1126,10 +916,10 @@
   "extra": {
     "ue_links": [],
     "ds": {
-      "scale": 0.41772481694158115,
+      "scale": 0.5054470284993146,
       "offset": [
-        308.7456545690858,
-        717.003645939723
+        -2261.2228419637204,
+        580.2654353225278
       ]
     },
     "links_added_by_ue": [],

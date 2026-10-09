@@ -30,10 +30,10 @@ negative conditioning. Connect the sampler's IMAGE output directly to **Save
 Image**. The included [API workflow](examples/text_to_image_api.json) shows these
 connections and local filenames.
 
-**Iris Render** is included in ComfyUI's Templates browser under **ComfyUI-Iris**.
-It preserves the saved workflow's two-pass sampling, LoRA and upscaling settings.
-It also uses `comfyui-various`, `wlsh_nodes`, the `bong_tangent` scheduler and the
-model filenames saved in the template; select your local models and enter a prompt.
+**Iris Render 2** is included in ComfyUI's Templates browser under **ComfyUI-Iris**.
+It uses only core ComfyUI and Iris nodes, preserving the saved sampling settings,
+optional LoRA and second pass. The datetime node and bypassed WLSH upscaling branch
+are omitted. Select your local model filenames and optional LoRA.
 The template omits the source workflow's identity metadata so imported copies
 receive their own identity.
 
