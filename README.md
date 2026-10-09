@@ -30,6 +30,13 @@ negative conditioning. Connect the sampler's IMAGE output directly to **Save
 Image**. The included [API workflow](examples/text_to_image_api.json) shows these
 connections and local filenames.
 
+**Iris Render** is included in ComfyUI's Templates browser under **ComfyUI-Iris**.
+It preserves the saved workflow's two-pass sampling, LoRA and upscaling settings.
+It also uses `comfyui-various`, `wlsh_nodes`, the `bong_tangent` scheduler and the
+model filenames saved in the template; select your local models and enter a prompt.
+The template omits the source workflow's identity metadata so imported copies
+receive their own identity.
+
 Optionally connect an IMAGE to **Iris KSampler (Pixels)** for image-to-image.
 Its dimensions and batch size replace the width, height and batch widgets.
 The sampler rounds dimensions to the nearest positive multiple of 16, rounding
