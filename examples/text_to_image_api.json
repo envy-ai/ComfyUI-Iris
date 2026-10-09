@@ -1,0 +1,8 @@
+{
+  "1": {"class_type": "IrisModelLoader", "inputs": {"model_name": "iris-3b/model.safetensors", "weight_dtype": "default"}},
+  "2": {"class_type": "IrisCLIPLoader", "inputs": {"clip_name": "qwen3vl_4b_bf16.safetensors"}},
+  "3": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0], "text": "a red fox sleeping in fresh snow, golden hour"}},
+  "4": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["2", 0], "text": ""}},
+  "5": {"class_type": "IrisKSampler", "inputs": {"model": ["1", 0], "positive": ["3", 0], "negative": ["4", 0], "seed": 42, "steps": 100, "cfg": 3.0, "sampler_name": "dpmpp_2m", "scheduler": "iris", "width": 1024, "height": 1024, "batch_size": 1}},
+  "6": {"class_type": "SaveImage", "inputs": {"images": ["5", 0], "filename_prefix": "Iris"}}
+}
