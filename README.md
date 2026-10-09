@@ -61,10 +61,10 @@ the original file:
 ```bash
 conda run -n comfyui python custom_nodes/ComfyUI-Iris/scripts/quantize.py \
   /d/comfy_models/diffusion_models/iris-3b/model.safetensors \
-  /d/comfy_models/diffusion_models/iris-3b/model_fp16.safetensors --format fp16
+  /d/comfy_models/diffusion_models/iris-3b/Iris-3B_fp16.safetensors --format fp16
 conda run -n comfyui python custom_nodes/ComfyUI-Iris/scripts/quantize.py \
   /d/comfy_models/diffusion_models/iris-3b/model.safetensors \
-  /d/comfy_models/diffusion_models/iris-3b/model_int8_convrot.safetensors --format int8-convrot
+  /d/comfy_models/diffusion_models/iris-3b/Iris-3B_int8_convrot.safetensors --format int8-convrot
 ```
 
 The converter uses CPU only, defaults to two threads, streams one source tensor
