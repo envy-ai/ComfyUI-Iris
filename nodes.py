@@ -8,6 +8,7 @@ import latent_preview
 import folder_paths
 import nodes
 from comfy_api.latest import io
+from comfy_extras.nodes_custom_sampler import SamplerCustomAdvanced
 
 from .integration import load_model, load_clip
 
@@ -51,28 +52,71 @@ class IrisKSampler(io.ComfyNode):
 
     @classmethod
     def execute(cls, model, positive, negative, seed, steps, cfg, sampler_name, scheduler, width, height, batch_size, denoise=1.0, image=None):
-        if image is not None:
-            batch_size, height, width = image.shape[:3]
-        width, height = max(16, ((width + 8) // 16) * 16), max(16, ((height + 8) // 16) * 16)
-        if image is not None and image.shape[1:3] != (height, width):
-            image = comfy.utils.common_upscale(image.movedim(-1, 1), width, height, "bilinear", "disabled").movedim(1, -1)
+        image, width, height, batch_size = _prepare_pixel_image(image, width, height, batch_size)
         if image is not None and denoise <= 0.0:
             return io.NodeOutput(image)
         latent_format = model.get_model_object("latent_format")
         if latent_format.latent_channels != 3 or latent_format.spacial_downscale_ratio != 1 or latent_format.latent_dimensions != 2:
             raise ValueError("Iris KSampler requires a pixel-space RGB model.")
-        device = comfy.model_management.intermediate_device()
-        samples = torch.zeros((batch_size, 3, height, width), device=device) if image is None else (2.0 * image[..., :3] - 1.0).movedim(-1, 1).to(device=device)
+        samples = _pixel_samples(image, width, height, batch_size)
         latent = {"samples": samples}
         if denoise <= 0.0:
-            return io.NodeOutput((samples.movedim(1, -1) + 1.0) / 2.0)
+            return io.NodeOutput(_pixel_output(samples))
         if scheduler == "iris":
             noise = comfy.sample.prepare_noise(samples, seed)
             sigmas = iris_sigmas(steps, denoise)
             sampled = {"samples": comfy.sample.sample(model, noise, steps, cfg, sampler_name, "simple", positive, negative, samples, denoise=denoise, sigmas=sigmas, callback=latent_preview.prepare_callback(model, steps), disable_pbar=not comfy.utils.PROGRESS_BAR_ENABLED, seed=seed)}
         else:
             sampled = nodes.common_ksampler(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent, denoise=denoise)[0]
-        return io.NodeOutput((sampled["samples"].movedim(1, -1) + 1.0) / 2.0)
+        return io.NodeOutput(_pixel_output(sampled["samples"]))
+
+
+class IrisSamplerCustomAdvanced(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        return io.Schema(node_id="IrisSamplerCustomAdvanced", display_name="Iris Sampler Custom Advanced (Pixels)", category="sampling/iris", description="Use ComfyUI custom noise, guider, sampler and sigmas to sample RGB pixels directly.", inputs=[
+            io.Noise.Input("noise"), io.Guider.Input("guider"), io.Sampler.Input("sampler"), io.Sigmas.Input("sigmas"),
+            io.Int.Input("width", default=1024, min=1, max=nodes.MAX_RESOLUTION), io.Int.Input("height", default=1024, min=1, max=nodes.MAX_RESOLUTION),
+            io.Int.Input("batch_size", default=1, min=1, max=4096),
+            io.Float.Input("denoise", default=1.0, min=0.0, max=1.0, step=0.01, optional=True, tooltip="Retains the final fraction of supplied sigma steps. Set upstream scheduler denoise to 1 to avoid trimming twice."),
+            io.Image.Input("image", optional=True, tooltip="Sets dimensions and batch size; dimensions round to the nearest 16 pixels."),
+        ], outputs=[io.Image.Output(display_name="output"), io.Image.Output(display_name="denoised_output")])
+
+    @classmethod
+    def execute(cls, noise, guider, sampler, sigmas, width, height, batch_size, denoise=1.0, image=None):
+        image, width, height, batch_size = _prepare_pixel_image(image, width, height, batch_size)
+        steps = len(sigmas) - 1
+        if 0.0 < denoise < 1.0:
+            steps = round(steps * denoise)
+            if steps > 0:
+                sigmas = sigmas[-(steps + 1):].clone()
+        if denoise <= 0.0 or steps < 1:
+            output = image if image is not None else _pixel_output(_pixel_samples(None, width, height, batch_size))
+            return io.NodeOutput(output, output)
+        latent_format = guider.model_patcher.get_model_object("latent_format")
+        if latent_format.latent_channels != 3 or latent_format.spacial_downscale_ratio != 1 or latent_format.latent_dimensions != 2:
+            raise ValueError("Iris Sampler Custom Advanced requires a pixel-space RGB model.")
+        latent = {"samples": _pixel_samples(image, width, height, batch_size)}
+        output, denoised = SamplerCustomAdvanced.execute(noise, guider, sampler, sigmas, latent).result
+        return io.NodeOutput(_pixel_output(output["samples"]), _pixel_output(denoised["samples"]))
+
+
+def _prepare_pixel_image(image, width, height, batch_size):
+    if image is not None:
+        batch_size, height, width = image.shape[:3]
+    width, height = max(16, ((width + 8) // 16) * 16), max(16, ((height + 8) // 16) * 16)
+    if image is not None and image.shape[1:3] != (height, width):
+        image = comfy.utils.common_upscale(image.movedim(-1, 1), width, height, "bilinear", "disabled").movedim(1, -1)
+    return image, width, height, batch_size
+
+
+def _pixel_samples(image, width, height, batch_size):
+    device = comfy.model_management.intermediate_device()
+    return torch.zeros((batch_size, 3, height, width), device=device) if image is None else (2.0 * image[..., :3] - 1.0).movedim(-1, 1).to(device=device)
+
+
+def _pixel_output(samples):
+    return (samples.movedim(1, -1) + 1.0) / 2.0
 
 
 def iris_sigmas(steps, denoise=1.0):

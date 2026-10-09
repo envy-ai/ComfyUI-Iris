@@ -39,8 +39,8 @@ Implementation is complete. After training and queues emptied, the focused CPU
 suite passed (26 tests). FP16 and corrected mixed INT8 checkpoints both passed
 64×64, one-step Euler generation with the INT8 heretic encoder and native Comfy
 Kitchen attention on RTX 4090. The package
-exposes three nodes (MODEL loader, native CLIP loader,
-direct IMAGE KSampler), an exact upstream sigma grid, and an API example.
+exposes four nodes (MODEL loader, native CLIP loader, direct IMAGE KSampler and
+custom advanced IMAGE sampler), an exact upstream sigma grid, and an API example.
 Static source compilation passed in the comfyui environment. Static review and
 checkpoint header inspection found the released shape/key contract aligned.
 
@@ -90,3 +90,11 @@ passed after fresh queue/training clearance. Real checkpoint image-to-image
 verification is pending because training restarted; no further tests run while
 training or queues are active.
 Model math and its arbitrary-size padding/cropping remain unchanged.
+
+The custom advanced sampler delegates execution to ComfyUI's existing
+SamplerCustomAdvanced, preserving noise, guider, callbacks and denoised output.
+Share pixel input preparation with IrisKSampler. Accept external SIGMAS unchanged
+at full denoise; partial denoise retains a cloned tail using SplitSigmasDenoise's
+rounded step count. Zero effective steps return the prepared image without
+sampling. New tests remain unexecuted while training is active; no restart is
+performed because the user plans a clean terminal restart.

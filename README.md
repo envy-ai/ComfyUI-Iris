@@ -38,6 +38,16 @@ needed. `denoise` defaults to 1; lower values preserve more of the source using
 ComfyUI's partial schedule semantics. Zero returns the image after dimension
 rounding; an already aligned image stays exactly unchanged.
 
+**Iris Sampler Custom Advanced (Pixels)** accepts standard NOISE, GUIDER,
+SAMPLER and SIGMAS inputs and returns two IMAGEs: `output` and `denoised_output`,
+with the same meanings as ComfyUI's Sampler Custom Advanced. It uses the same
+dimension rounding, optional IMAGE and batch behavior as Iris KSampler.
+Its `denoise` retains the final `round(sigma_steps * denoise)` steps of the
+supplied schedule. Set the upstream scheduler's denoise to 1 when using this
+input to avoid trimming twice. Full denoise leaves supplied sigmas unchanged;
+zero denoise or an empty sampling schedule returns the prepared image on both
+outputs without generating noise. No VAE is needed.
+
 Defaults follow the release: 1024×1024, 100 steps, CFG 3, `dpmpp_2m`. The `iris`
 scheduler uses upstream's shifted rectified-flow grid (shift 4, unshifted starting
 sigma 0.999, final sigma 0). Other ComfyUI samplers and schedulers are available;
@@ -69,6 +79,8 @@ images with the INT8 heretic encoder on RTX 4090: one Euler step, CFG 1.5, nativ
 Comfy Kitchen attention (`--use-ck-attention`). Encoder states and masks matched
 the required layouts. These checks do not establish image quality at release settings.
 Real checkpoint image-to-image verification is pending while training is active.
+Custom advanced sampler tests are authored and pending the same training/queue
+condition. The new node loads on the next ComfyUI restart.
 
 On the tested local PyTorch/cuDNN build, PyTorch attention fails in the masked
 text adapter with `No valid execution plans built`. Use Comfy Kitchen attention
