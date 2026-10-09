@@ -71,7 +71,8 @@ The model port is derived from Speridlabs source revision
 `a8d15239dea469aba042cfa56ca3bb4e450d5ebc`. Original Apache-2.0 LICENSE and NOTICE
 are included. ComfyUI and the Qwen weights keep their respective licenses.
 
-Source compilation and the focused CPU suite passed (26 tests). Tests in `tests/`
+Source compilation passed. Before the custom advanced node was added, the
+focused CPU suite passed (26 tests). Tests in `tests/`
 cover tiny-model layout and upstream parity, loader boundaries, compatible and
 quantized CLIP loading, tokenizer behavior and the IMAGE sampler contract.
 Real FP16 and corrected mixed INT8 Iris checkpoints both generated finite 64×64
