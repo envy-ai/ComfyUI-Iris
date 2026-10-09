@@ -80,6 +80,23 @@ def test_tiny_model_forward_is_repeatable_for_same_inputs():
     torch.testing.assert_close(first, second, rtol=0, atol=0)
 
 
+def test_odd_size_forward_matches_replicate_padding_and_keeps_image_edges():
+    model = tiny_model()
+    context = torch.ones(1, 2, 2, 8)
+    prepared = model.preprocess_text(context, torch.tensor([[1, 1]]))
+    image = torch.linspace(-1, 1, 1 * 3 * 5 * 7).reshape(1, 3, 5, 7)
+    timestep = torch.tensor([250.0])
+
+    actual = model(image, timestep, prepared)
+    padded = torch.nn.functional.pad(image, (0, 1, 0, 1), mode="replicate")
+    expected = model(padded, timestep, prepared)[:, :, :5, :7]
+
+    assert actual.shape == image.shape
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+    assert torch.count_nonzero(actual[:, :, -1, :]) > 0
+    assert torch.count_nonzero(actual[:, :, :, -1]) > 0
+
+
 def test_tiny_model_matches_upstream_outputs_and_checkpoint_keys():
     upstream = Path(__file__).parents[3] / "tmp/iris3b/upstream/src"
     if not (upstream / "iris3b").is_dir():

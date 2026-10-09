@@ -45,24 +45,40 @@ class IrisKSampler(io.ComfyNode):
             io.Combo.Input("scheduler", options=["iris"] + comfy.samplers.KSampler.SCHEDULERS, default="iris"),
             io.Int.Input("width", default=1024, min=1, max=nodes.MAX_RESOLUTION), io.Int.Input("height", default=1024, min=1, max=nodes.MAX_RESOLUTION),
             io.Int.Input("batch_size", default=1, min=1, max=4096),
+            io.Float.Input("denoise", default=1.0, min=0.0, max=1.0, step=0.01, optional=True),
+            io.Image.Input("image", optional=True, tooltip="Sets dimensions and batch size; dimensions round to the nearest 16 pixels. Denoise controls image-to-image strength."),
         ], outputs=[io.Image.Output()])
 
     @classmethod
-    def execute(cls, model, positive, negative, seed, steps, cfg, sampler_name, scheduler, width, height, batch_size):
+    def execute(cls, model, positive, negative, seed, steps, cfg, sampler_name, scheduler, width, height, batch_size, denoise=1.0, image=None):
+        if image is not None:
+            batch_size, height, width = image.shape[:3]
+        width, height = max(16, ((width + 8) // 16) * 16), max(16, ((height + 8) // 16) * 16)
+        if image is not None and image.shape[1:3] != (height, width):
+            image = comfy.utils.common_upscale(image.movedim(-1, 1), width, height, "bilinear", "disabled").movedim(1, -1)
+        if image is not None and denoise <= 0.0:
+            return io.NodeOutput(image)
         latent_format = model.get_model_object("latent_format")
         if latent_format.latent_channels != 3 or latent_format.spacial_downscale_ratio != 1 or latent_format.latent_dimensions != 2:
             raise ValueError("Iris KSampler requires a pixel-space RGB model.")
-        latent = {"samples": torch.zeros((batch_size, 3, height, width), device=comfy.model_management.intermediate_device())}
+        device = comfy.model_management.intermediate_device()
+        samples = torch.zeros((batch_size, 3, height, width), device=device) if image is None else (2.0 * image[..., :3] - 1.0).movedim(-1, 1).to(device=device)
+        latent = {"samples": samples}
+        if denoise <= 0.0:
+            return io.NodeOutput((samples.movedim(1, -1) + 1.0) / 2.0)
         if scheduler == "iris":
-            samples = latent["samples"]
             noise = comfy.sample.prepare_noise(samples, seed)
-            sigmas = iris_sigmas(steps)
-            sampled = {"samples": comfy.sample.sample(model, noise, steps, cfg, sampler_name, "simple", positive, negative, samples, sigmas=sigmas, callback=latent_preview.prepare_callback(model, steps), disable_pbar=not comfy.utils.PROGRESS_BAR_ENABLED, seed=seed)}
+            sigmas = iris_sigmas(steps, denoise)
+            sampled = {"samples": comfy.sample.sample(model, noise, steps, cfg, sampler_name, "simple", positive, negative, samples, denoise=denoise, sigmas=sigmas, callback=latent_preview.prepare_callback(model, steps), disable_pbar=not comfy.utils.PROGRESS_BAR_ENABLED, seed=seed)}
         else:
-            sampled = nodes.common_ksampler(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent)[0]
+            sampled = nodes.common_ksampler(model, seed, steps, cfg, sampler_name, scheduler, positive, negative, latent, denoise=denoise)[0]
         return io.NodeOutput((sampled["samples"].movedim(1, -1) + 1.0) / 2.0)
 
 
-def iris_sigmas(steps):
-    sigma = 1.0 - torch.linspace(1.0, 0.001, steps + 1, dtype=torch.float64)
-    return (4.0 * sigma / (1.0 + 3.0 * sigma)).flip(0).to(torch.float32)
+def iris_sigmas(steps, denoise=1.0):
+    if denoise <= 0.0:
+        return torch.empty(0, dtype=torch.float32)
+    total_steps = steps if denoise > 0.9999 else int(steps / denoise)
+    sigma = 1.0 - torch.linspace(1.0, 0.001, total_steps + 1, dtype=torch.float64)
+    sigmas = (4.0 * sigma / (1.0 + 3.0 * sigma)).flip(0).to(torch.float32)
+    return sigmas if total_steps == steps else sigmas[-(steps + 1):].clone()

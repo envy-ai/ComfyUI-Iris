@@ -19,7 +19,8 @@ Model files stay in configured ComfyUI model folders:
   Compatible fine-tunes, including heretic variants, are accepted. Native
   ComfyUI FP8-scaled and INT8 ConvRot checkpoints retain their quantization.
   Supported namespaces are `model.language_model.*`, `language_model.*` and
-  language-only `model.*`. The encoder must keep Qwen3-VL-4B's 36 layers, 2560
+  native `model.*`; unused vision and language output heads are ignored.
+  The encoder must keep Qwen3-VL-4B's 36 layers, 2560
   hidden width and tokenizer. The original encoder is the release reference;
   changed language weights may change prompt conditioning and image quality.
 
@@ -28,6 +29,14 @@ CLIP** to two standard **CLIP Text Encode (Prompt)** nodes for positive and
 negative conditioning. Connect the sampler's IMAGE output directly to **Save
 Image**. The included [API workflow](examples/text_to_image_api.json) shows these
 connections and local filenames.
+
+Optionally connect an IMAGE to **Iris KSampler (Pixels)** for image-to-image.
+Its dimensions and batch size replace the width, height and batch widgets.
+The sampler rounds dimensions to the nearest positive multiple of 16, rounding
+halfway values up; an input image is resized with bilinear interpolation when
+needed. `denoise` defaults to 1; lower values preserve more of the source using
+ComfyUI's partial schedule semantics. Zero returns the image after dimension
+rounding; an already aligned image stays exactly unchanged.
 
 Defaults follow the release: 1024×1024, 100 steps, CFG 3, `dpmpp_2m`. The `iris`
 scheduler uses upstream's shifted rectified-flow grid (shift 4, unshifted starting
@@ -40,8 +49,8 @@ Standard **KSampler** also works with the Iris MODEL and
 **EmptyChromaRadianceLatentImage**. Its LATENT contains RGB in the model's
 approximately −1…1 domain; convert to IMAGE with `(pixels + 1) / 2`, preserving
 NHWC ordering. The dedicated sampler performs this conversion and returns IMAGE.
-Sizes need not be divisible by 16: Iris pads internally and crops to the supplied
-size. Encoding keeps the release's 300 positions, chat suffix, attention mask,
+The Iris MODEL accepts dimensions that are not divisible by 16, pads internally
+and crops to the supplied latent size. Encoding keeps the release's 300 positions, chat suffix, attention mask,
 and 12 raw Qwen hidden layers. The text adapter runs once per conditioning.
 
 This package implements text-to-image. The separate `depth/model.safetensors`
@@ -52,13 +61,14 @@ The model port is derived from Speridlabs source revision
 `a8d15239dea469aba042cfa56ca3bb4e450d5ebc`. Original Apache-2.0 LICENSE and NOTICE
 are included. ComfyUI and the Qwen weights keep their respective licenses.
 
-Source compilation and the focused CPU suite passed (20 tests). Tests in `tests/`
+Source compilation and the focused CPU suite passed (26 tests). Tests in `tests/`
 cover tiny-model layout and upstream parity, loader boundaries, compatible and
 quantized CLIP loading, tokenizer behavior and the IMAGE sampler contract.
 Real FP16 and corrected mixed INT8 Iris checkpoints both generated finite 64×64
 images with the INT8 heretic encoder on RTX 4090: one Euler step, CFG 1.5, native
 Comfy Kitchen attention (`--use-ck-attention`). Encoder states and masks matched
 the required layouts. These checks do not establish image quality at release settings.
+Real checkpoint image-to-image verification is pending while training is active.
 
 On the tested local PyTorch/cuDNN build, PyTorch attention fails in the masked
 text adapter with `No valid execution plans built`. Use Comfy Kitchen attention

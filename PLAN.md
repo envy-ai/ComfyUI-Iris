@@ -36,7 +36,7 @@ activations are large at 1024 px, so use native offloading and conservative
 memory estimates. Required tests must not run while user's training/queues run.
 
 Implementation is complete. After training and queues emptied, the focused CPU
-suite passed (20 tests). FP16 and corrected mixed INT8 checkpoints both passed
+suite passed (26 tests). FP16 and corrected mixed INT8 checkpoints both passed
 64×64, one-step Euler generation with the INT8 heretic encoder and native Comfy
 Kitchen attention on RTX 4090. The package
 exposes three nodes (MODEL loader, native CLIP loader,
@@ -77,3 +77,16 @@ Compatible Qwen3-VL-4B fine-tunes and native quantized language weights use the
 same encoder path. Normalize native quant metadata and supported language
 namespaces, validate architecture and required weights, then load once through
 ComfyUI's CLIP constructor. Keep the exact Iris conditioning recipe.
+
+Add optional IMAGE and denoise inputs at the sampler boundary, preserving old
+positional calls and default text-to-image behavior. IMAGE owns dimensions and
+batch size. At the user's request, round sampler dimensions to the nearest
+positive multiple of 16 and resize supplied IMAGEs with bilinear interpolation
+when needed. Normalize RGB to the existing pixel latent range.
+Use native denoise forwarding and slice the Iris sigma grid like KSampler;
+zero denoise returns the rounded IMAGE (aligned inputs stay exactly unchanged).
+Focused sampler, rounding/resizing and model odd-size padding/cropping tests
+passed after fresh queue/training clearance. Real checkpoint image-to-image
+verification is pending because training restarted; no further tests run while
+training or queues are active.
+Model math and its arbitrary-size padding/cropping remain unchanged.
