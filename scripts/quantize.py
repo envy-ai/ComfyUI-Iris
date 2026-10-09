@@ -27,8 +27,8 @@ FLOAT_DTYPES = {"F16", "BF16", "F32", "F64"}
 QUANT_CONFIG = json.dumps({"format": "int8_tensorwise", "convrot": True,
                            "convrot_groupsize": 256}, separators=(",", ":")).encode()
 POLICY = {
-    "int8": "trunk attention Q/K/V/output projections and SwiGLU w1/w3, input width divisible by 256",
-    "fp16": "all other floating tensors, including content gates, w2, text adapter, modulation, timestep, norms and pixel head",
+    "int8": "trunk attention Q/K/V/output projections, input width divisible by 256 and output width divisible by 4",
+    "fp16": "all other floating tensors, including content gates, all MLPs, text adapter, modulation, timestep, norms and pixel head",
     "scale": "float32 per output channel",
     "convrot_groupsize": 256,
     "calibrated": False,
@@ -51,8 +51,7 @@ def is_target(name, spec):
     attention = ((parts[2] == "attn" and projection in {
         "q_proj_x", "k_proj_x", "v_proj_x", "q_proj_y", "k_proj_y", "v_proj_y", "proj_x", "proj_y"
     }) or (parts[2] in {"q_proj", "k_proj", "v_proj", "attn_proj"}))
-    mlp = parts[2] in {"mlp", "mlp_x", "mlp_y"} and projection in {"w1", "w3"}
-    return (attention or mlp) and spec["shape"][1] % 256 == 0
+    return attention and spec["shape"][0] % 4 == 0 and spec["shape"][1] % 256 == 0
 
 
 def tensor_bytes(spec):

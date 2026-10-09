@@ -35,8 +35,11 @@ velocity uses decreasing noise time and ComfyUI CONST conventions. Pixel-stage
 activations are large at 1024 px, so use native offloading and conservative
 memory estimates. Required tests must not run while user's training/queues run.
 
-Implementation is complete; runtime verification is pending the queue/training
-condition. The package exposes three nodes (MODEL loader, native CLIP loader,
+Implementation is complete. After training and queues emptied, the focused CPU
+suite passed (20 tests). FP16 and corrected mixed INT8 checkpoints both passed
+64×64, one-step Euler generation with the INT8 heretic encoder and native Comfy
+Kitchen attention on RTX 4090. The package
+exposes three nodes (MODEL loader, native CLIP loader,
 direct IMAGE KSampler), an exact upstream sigma grid, and an API example.
 Static source compilation passed in the comfyui environment. Static review and
 checkpoint header inspection found the released shape/key contract aligned.
@@ -53,11 +56,14 @@ RMSNorm affine weight, so native RMSNorm plus compound addcmul keeps that math.
 
 Add a one-tensor-at-a-time converter for the main original checkpoint. FP16 casts
 all floating checkpoint tensors, rejecting values that become non-finite. The
-mixed INT8 ConvRot policy quantizes trunk Q/K/V and attention output projections,
-plus SwiGLU w1/w3 matrices, with per-output-channel FP32 scales and group size 256.
-Keep content gate matrices, SwiGLU w2, the text adapter, all modulation/time paths,
+mixed INT8 ConvRot policy quantizes 128 trunk Q/K/V and attention output projections
+with per-output-channel FP32 scales and group size 256. Keep content gate matrices,
+all MLPs, the text adapter, all modulation/time paths,
 input/output layers, norms and the pixel head in FP16. The w2 input width is 6826,
 which cannot use the 256-column rotation grouping without altering the model.
+The w1/w3 output width is also 6826, outside the native GPU INT8 GEMM's
+multiple-of-four requirement. Eligibility checks input width modulo 256 and
+output width modulo four; model/checkpoint shapes remain unchanged.
 This policy is an informed initial choice, without image-quality calibration.
 
 Store native `.comfy_quant` metadata and select ComfyUI's mixed-precision ops at
@@ -65,5 +71,9 @@ load. Conversion runs only on CPU, with bounded threads, and does not instantiat
 or run a model. Write `.partial` files before committing completed artifacts;
 leave the original checkpoint untouched. Preserve upstream file metadata and
 record conversion parameters/tensor counts in the file and an adjacent JSON.
-Runtime/inference tests remain explicitly deferred until training and queues are
-empty; CPU artifact conversion is separately authorized by the user.
+CPU artifact conversion was separately authorized during training.
+
+Compatible Qwen3-VL-4B fine-tunes and native quantized language weights use the
+same encoder path. Normalize native quant metadata and supported language
+namespaces, validate architecture and required weights, then load once through
+ComfyUI's CLIP constructor. Keep the exact Iris conditioning recipe.

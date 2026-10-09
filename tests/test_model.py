@@ -5,7 +5,8 @@ import sys
 import pytest
 import torch
 
-model_path = Path(__file__).parents[1] / "model.py"
+pack = Path(__file__).parents[1]
+model_path = pack / "model.py"
 spec = importlib.util.spec_from_file_location("iris_native_model", model_path)
 iris_model = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = iris_model
@@ -58,6 +59,11 @@ def test_tiny_model_preprocesses_layerwise_text_and_crops_padded_pixels():
     assert prepared.shape == (1, 3, 8)
     assert result.shape == image.shape
     assert torch.isfinite(result).all()
+
+    one_pixel = torch.zeros(1, 3, 1, 1)
+    cropped = model(one_pixel, torch.tensor([250.0]), prepared)
+    assert cropped.shape == one_pixel.shape
+    assert torch.isfinite(cropped).all()
 
 
 def test_tiny_model_forward_is_repeatable_for_same_inputs():
